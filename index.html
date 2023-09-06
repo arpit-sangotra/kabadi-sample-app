@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Data Display</title>
+    <!-- Include Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Include SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@10">
+    <style>
+        /* Style for the background image */
+        body {
+            background-image: url('https://mir-s3-cdn-cf.behance.net/project_modules/1400_opt_1/8f8443135272715.61e55ba918cbb.jpg'); /* Replace with your image URL */
+            background-size: cover;
+            background-repeat: no-repeat;
+        }
+
+        /* Style for the timer */
+        #timer {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1001; /* Ensure the timer is above everything */
+        }
+        .page-content {
+            position: relative;
+            z-index: 1000; /* Set a lower z-index for the page content */
+            opacity: 1; /* Initial opacity of the page content */
+            transition: opacity 0.3s; /* Add a smooth transition effect */
+        }
+        .page-content.blur {
+            opacity: 0.5; /* Reduce opacity to make it appear in the background */
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 id="tournamentName" class="text-center page-content"></h1>
+        <div id="teamInfo" class="text-center page-content"></div>
+        <div id="startTime" class="text-center page-content"></div>
+    </div>
+
+    <!-- Timer element -->
+    <!--<div id="timer"></div>-->
+
+    <!-- Include Bootstrap JS and JavaScript to make API calls -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- Include SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+    <script>
+        let timerInterval;
+        let timerActive = false;
+
+        // Function to update the timer element
+        function updateTimer(seconds) {
+            const timerElement = document.getElementById('timer');
+            timerElement.textContent = `Timer: ${seconds} seconds`;
+        }
+
+        // Function to display a round timer popup
+        function showTimerPopup(seconds) {
+            Swal.fire({
+                title: 'Raid Time',
+                text: `${seconds} seconds`,
+                timer: seconds * 1000, // Convert seconds to milliseconds
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                allowEnterKey: false,
+                onBeforeOpen: () => {
+                    Swal.showLoading();
+                    // Add blur class to page content to make it appear in the background
+                    document.querySelectorAll('.page-content').forEach((element) => {
+                        element.classList.add('blur');
+                    });
+                },
+                onClose: () => {
+                    // Code to execute when the timer popup is closed
+                    // In this example, we'll just alert that the timer is complete
+                    alert('Raid timer completed!');
+                    timerActive = false;
+                    // Remove blur class to restore the page content
+                    document.querySelectorAll('.page-content').forEach((element) => {
+                        element.classList.remove('blur');
+                    });
+                }
+            });
+        }
+
+        // Function to make the API call and update the page
+        function fetchData() {
+            fetch('http://localhost:3000/matches/1')
+                .then(response => response.json())
+                .then(data => {
+                    const tournamentName = document.getElementById('tournamentName');
+                    const teamInfo = document.getElementById('teamInfo');
+                    const startTime = document.getElementById('startTime');
+
+                    tournamentName.textContent = data.tor_name;
+
+                    const teamInfoText = `${data.team1_name} ${data.team1_score} - ${data.team2_score} ${data.team2_name}`;
+                    teamInfo.textContent = teamInfoText;
+
+                    startTime.textContent = `Started at: ${data.start_time}`;
+
+                    if (data.raid) {
+                        if (!timerActive) {
+                            // Start a 30-second timer if it's not already active
+                            const seconds = 30;
+                            updateTimer(seconds);
+                            timerActive = true;
+                            // Show the round timer popup
+                            showTimerPopup(seconds);
+                        }
+                    } else {
+                        // Reset the timer if raid is false
+                        clearInterval(timerInterval);
+                        timerActive = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                });
+        }
+
+        // Call fetchData every 1 second
+        setInterval(fetchData, 1000);
+
+        // Initial call to fetchData
+        fetchData();
+    </script>
+</body>
+</html>
